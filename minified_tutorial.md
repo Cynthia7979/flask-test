@@ -14,7 +14,7 @@
 
 ## 路由
 一般来说，浏览器路径栏中的URL（如“https://dormousehole.readthedocs.io/en/latest/installation.html”）
-并不指向任何一个页面。这个链接需要由**路由**进行处理，然后程序的某一个部分才能对其作出响应。
+并不指向任何一个页面。这个链接需要由**路由**进行处理，然后才能指定对应代码对其进行响应。
 
 Flask的路由是通过装饰器实现的。装饰器就是函数、类或方法上面，以 **@** 开头的一个语句。
 
@@ -61,16 +61,35 @@ from flask import render_template
 @app.route('/hello/')
 @app.route('/hello/<name>')
 def hello(name=None):
-    return render_template('hello.html', name=name)
+    return render_template('hello.html', name=name)  # 见下文“渲染静态页面”
 ```
+
+### 错误处理
+`errorhandler`装饰器可以自定义出错页面。
+```python
+from flask import render_template
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('page_not_found.html'), 404
+```
+
 
 ### HTTP方法
 一般情况下，`app.route()`只会处理GET请求（即，获取某个页面或数据的请求）。如果需要处理POST请求，需要加上`methods=['GET', 'POST']`参数。
+```python
+from flask import request
+
+@app.route('/getandpost/', methods=['GET', 'POST'])
+def get_and_post():
+    if request.method == 'POST':  # 见下文“处理请求”
+        post_to_database()
+    else:
+        return '<p>You GOT this page!</p>'
+```
 
 ## 获取指定的URL
-**`url_for(endpoint, **values)`**（[文档](https://flask.net.cn/api.html#flask.url_for)）
-
-这个函数会返回指定函数所对应的URL：
+**`url_for(endpoint, **values)`**([文档](https://flask.net.cn/api.html#flask.url_for)) - 返回指定函数对应的URL：
 * `endpoint`为字符串形式的函数名称
 * `values`为传递给该函数的参数。
 
@@ -93,3 +112,57 @@ Flask用了一种神奇的方式实现了一个全局局部对象`request`。这
 
 处理请求前，需要先从flask导入该对象：`from flask import request`。随后只要在函数内直接使用`request`即可。
 
+## [文件上传](https://flask.net.cn/patterns/fileuploads.html#uploading-files)
+“原生”的文件上传需要如下步骤：
+
+1. 在HTML中加入上传按钮
+    ```html
+    <form enctype="multipart/form-data">
+       <input type="file" name="文件名"/>
+    </form>
+    ```
+2. 在代码中使用`file = request.files['文件名']`获取文件
+    * `file`和Python中用`open()`获取的文件拥有相同的属性和方法
+    * 如`.filename`, `.read`等等
+3. 使用`file.save(secure_filename('path/filename.ext'))`将文件保存到本地
+    * `secure_filename()`可以保证文件名中不包含任何可能危害本地文件的信息
+
+除原生方案外，[Flask-Uploads](https://pythonhosted.org/Flask-Uploads/) 
+和 [Flask-WTF](https://flask-wtf.readthedocs.io/en/0.15.x/form/#file-uploads) 都提供文件上传功能
+
+## 重定向
+**`redirect(url)`** - 转到指定URL，建议搭配`url_for()`使用
+
+**`abort(error_code)`** - 终止请求处理，并返回错误代码
+
+## 响应 (Response)
+1. 如果视图返回的是一个响应对象，那么就直接返回它。
+2. 如果返回的是一个字符串，那么根据这个字符串和缺省参数生成一个用于返回的 响应对象。
+3. 如果返回的是一个字典，那么调用 jsonify 创建一个响应对象。
+4. 如果返回的是一个元组，那么元组中的项目可以提供额外的信息。元组中必须至少 包含一个项目，且项目应当由 (response, status) 、 (response, headers) 或者 (response, status, headers) 组成。 status 的值会重载状态代码， headers 是一个由额外头部值组成的列表 或字典。
+5. 如果以上都不是，那么 Flask 会假定返回值是一个有效的 WSGI 应用并把它转换为 一个响应对象。
+
+（好复杂 总之就是想返回什么就用`return`返回 如果出错了再看文档处理（暴言））
+
+## Cookie
+**`request.cookies.get('key')`** - 获取指定cookie
+
+**`response.set_cookie('key', 'value')`** - 设定cookie
+* `Response`对象通过`make_response('<p>original return data</p>')`获取
+* 见[文档](https://flask.net.cn/quickstart.html#cookies)
+
+## Session (TODO)
+大概是一个页面间共享的加密cookie  
+https://flask.net.cn/quickstart.html#sessions
+
+## 闪现消息 (Flash Message)
+闪现消息可以在不刷新页面的情况下，通过Python代码显示新的内容。它的机制如下：
+* HTML模板中为闪现消息预留位置
+* Python使用`flash()`更新闪现消息内容
+* Flask修改页面中的闪现消息，效果上就是出现了一条提示
+
+## 日志
+Flask自动配置了一个`logging.Logger`对象，使用方法如下：
+
+**`app.logger.debug('msg')`** - DEBUG级别信息
+* 同理有`app.logger.info()`, `.warning()`, `.error()`和`.critical()`
