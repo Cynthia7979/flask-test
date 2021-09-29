@@ -72,3 +72,6 @@ via Macros:
     </div>
 </div>
 ```
+
+## 用来~~copy~~参考学习的repo
+* [lufficc/flask_ishuhui](https://github.com/lufficc/flask_ishuhui)
