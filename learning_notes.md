@@ -75,3 +75,4 @@ via Macros:
 
 ## 用来~~copy~~参考学习的repo
 * [lufficc/flask_ishuhui](https://github.com/lufficc/flask_ishuhui)
+* [tag:flask-application](https://github.com/topics/flask-application)
